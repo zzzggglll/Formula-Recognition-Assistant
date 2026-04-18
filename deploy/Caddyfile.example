@@ -1,0 +1,10 @@
+﻿# 把 example.com 改成你的正式域名
+example.com {
+    encode gzip
+
+    reverse_proxy 127.0.0.1:5050 {
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        header_up X-Forwarded-For {remote_host}
+    }
+}

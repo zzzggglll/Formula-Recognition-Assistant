@@ -1,0 +1,94 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>公式识别助手 Word 插件</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='word-addin/taskpane.css') }}">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+</head>
+<body class="addin-page">
+  <main class="addin-shell">
+    <section class="hero-card">
+      <p class="hero-card__eyebrow">Word Add-in MVP</p>
+      <h1>在 Word 里识别图片公式并直接插入文档</h1>
+      <p class="hero-card__lede">当前版本先聚焦最短闭环：上传公式截图，完成识别，然后一键插入当前 Word 文档。</p>
+      <div class="hero-card__meta">
+        <span class="pill" id="host-pill">等待 Word 宿主连接</span>
+        <span class="pill pill--ghost" id="result-pill">尚未识别</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Step 1</p>
+          <h2>上传或粘贴公式截图</h2>
+        </div>
+      </div>
+
+      <label class="dropzone" id="dropzone" for="file-input">
+        <input id="file-input" type="file" accept="image/png,image/jpeg,image/webp">
+        <div class="dropzone__icon">IMG</div>
+        <div class="dropzone__body">
+          <strong>点击选择图片，或把截图拖到这里</strong>
+          <p>支持 png / jpg / jpeg / webp，建议单公式、清晰背景。也可以在插件里按 <code>Ctrl + V</code> 直接粘贴截图。</p>
+        </div>
+      </label>
+
+      <div class="upload-meta" id="upload-meta">还没有选择图片</div>
+
+      <div class="image-preview" id="image-preview-frame">
+        <img id="image-preview" alt="公式截图预览">
+        <div class="image-preview__empty" id="image-preview-empty">
+          <p>上传后将在这里显示截图预览</p>
+        </div>
+      </div>
+      <p class="image-preview__hint">识别前请确认截图里只包含一个公式。</p>
+
+      <div class="actions">
+        <button id="recognize-btn" class="btn btn--primary">识别并准备插入</button>
+        <button id="reset-btn" class="btn btn--ghost">清空</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Step 2</p>
+          <h2>检查识别结果并插入</h2>
+        </div>
+      </div>
+
+      <div class="notice" id="notice-box">请先在 Word 中打开这个任务窗格，再上传公式截图。当前 MVP 不提供 LaTeX 手改功能。</div>
+
+      <div class="result-meta">
+        <span class="result-meta__chip" id="provider-chip">识别引擎：未开始</span>
+        <span class="result-meta__chip" id="mode-chip">插入状态：等待识别</span>
+      </div>
+
+      <label class="field-label">识别出的 LaTeX</label>
+      <pre class="latex-output" id="latex-output">识别完成后，这里会显示结果。</pre>
+
+      <label class="field-label">公式预览</label>
+      <div class="render-panel" id="math-preview">
+        <div class="render-panel__empty">识别完成后，这里会显示渲染后的公式。</div>
+      </div>
+
+      <div class="actions actions--stacked-mobile">
+        <button id="insert-btn" class="btn btn--primary" disabled>插入到当前 Word 文档</button>
+        <button id="download-btn" class="btn btn--ghost" disabled>下载 Word 原生公式 .docx</button>
+      </div>
+
+      <p class="hint" id="word-hint">插入按钮会使用后端生成的 Word OOXML 结果，失败时可以退回下载 `.docx` 的方式。</p>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="{{ url_for('static', filename='word-addin/taskpane.js') }}"></script>
+</body>
+</html>

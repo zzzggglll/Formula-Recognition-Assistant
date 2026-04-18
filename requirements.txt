@@ -1,0 +1,10 @@
+flask
+python-dotenv
+paddlepaddle
+paddleocr
+paddlex[ocr]==3.4.3
+python-docx
+latex2mathml
+cryptography
+lxml
+waitress

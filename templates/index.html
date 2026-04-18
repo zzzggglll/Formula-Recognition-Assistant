@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>公式识别器</title>
+  <meta name="description" content="上传公式截图，快速转换为 LaTeX，并实时预览渲染结果。">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <section class="hero__main">
+        <p class="hero__eyebrow">FORMULA OCR</p>
+        <h1>公式识别器</h1>
+        <p class="hero__lead">面向论文写作、课程作业和科研笔记整理的轻量化公式识别网站。</p>
+        <div class="hero__chips" aria-label="功能亮点">
+          <span>单图识别</span>
+          <span>支持拖拽 / 粘贴</span>
+          <span>LaTeX 实时预览</span>
+        </div>
+      </section>
+    </header>
+
+    <section class="workspace">
+      <section class="card card--upload">
+        <div class="card__header">
+          <div>
+            <p class="card__step">STEP 1</p>
+            <h2>上传公式图片</h2>
+          </div>
+          <span class="status-pill is-ready" id="status-pill">准备就绪</span>
+        </div>
+
+        <label class="dropzone" id="dropzone" for="file-input">
+          <input id="file-input" type="file" accept="image/png,image/jpeg,image/webp">
+          <div class="dropzone__badge">IMG</div>
+          <div class="dropzone__body">
+            <strong>拖拽图片到这里，或点击选择文件</strong>
+            <p>支持 png / jpg / jpeg / webp，建议 5MB 以内。也可以直接在页面里按 <code>Ctrl + V</code> 粘贴截图。</p>
+          </div>
+        </label>
+
+        <div class="upload-meta" id="upload-meta">还没有选择图片</div>
+
+        <div class="preview-frame" id="preview-frame">
+          <img id="image-preview" alt="公式预览图">
+          <div class="preview-frame__empty" id="preview-empty">
+            <strong>图片预览区</strong>
+            <p>上传后会在这里显示原图，方便你对照识别结果。</p>
+          </div>
+        </div>
+
+        <div class="actions actions--primary">
+          <button id="recognize-btn" class="btn btn--primary">开始识别</button>
+          <button id="clear-btn" class="btn btn--secondary">清空</button>
+        </div>
+
+        <section class="upload-tips" aria-label="使用建议">
+          <p class="upload-tips__title">使用建议</p>
+          <p class="upload-tips__text">尽量上传只包含单个公式的清晰截图。复杂整页、长段正文或带大量噪点的图片，建议先裁剪后再识别。</p>
+        </section>
+      </section>
+
+      <section class="card card--result">
+        <div class="card__header">
+          <div>
+            <p class="card__step">STEP 2</p>
+            <h2>识别结果</h2>
+          </div>
+          <span class="mode-pill" id="mode-pill">等待识别</span>
+        </div>
+
+        <div class="notice" id="notice-box" hidden></div>
+
+        <section class="section section--original">
+          <div class="section__header section__header--between">
+            <span class="section__label">原始识别结果</span>
+            <span class="section__hint">这里会保留模型第一次输出，方便你对照修正。</span>
+          </div>
+          <pre class="code-panel" id="original-latex-output">识别完成后，这里会显示原始识别结果。</pre>
+        </section>
+
+        <section class="section section--editor">
+          <div class="section__header section__header--stack">
+            <span class="section__label">LATEX 修正区</span>
+            <div class="editor-meta">
+              <span class="edit-badge is-idle" id="edit-badge">等待识别</span>
+              <p class="editor-meta__text" id="edit-meta-text">识别完成后，你可以在这里手动修正公式。复制、Word 文档导出和后续操作都会使用当前修正版。</p>
+            </div>
+          </div>
+          <textarea id="latex-output" spellcheck="false" placeholder="识别后的 LaTeX 会出现在这里，你也可以手动修改并实时预览。"></textarea>
+          <div class="actions actions--compact correction-actions">
+            <button id="save-correction-btn" class="btn btn--small btn--primary-soft">保存修正版</button>
+            <button id="restore-saved-btn" class="btn btn--small btn--secondary">恢复已保存修正版</button>
+            <button id="restore-original-btn" class="btn btn--small btn--secondary">恢复原始识别</button>
+          </div>
+        </section>
+
+        <section class="section section--preview">
+          <div class="section__header">
+            <span class="section__label section__label--plain">公式预览</span>
+          </div>
+          <div class="render-panel" id="math-preview">
+            <div class="render-panel__empty">识别完成后，这里会显示渲染后的公式。</div>
+          </div>
+        </section>
+
+        <div class="actions actions--compact actions--result">
+          <button id="copy-latex-btn" class="btn btn--small btn--secondary">复制源码</button>
+          <button id="copy-display-btn" class="btn btn--small btn--secondary">复制带 $$ 的公式</button>
+          <button id="download-word-btn" class="btn btn--small btn--secondary">下载 Word 原生公式 .docx</button>
+        </div>
+      </section>
+    </section>
+
+    <footer class="footer">当前版本先聚焦单张公式图片识别。后续可以继续扩展 PDF、整页检测和历史记录等能力。</footer>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
