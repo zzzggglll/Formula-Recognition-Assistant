@@ -4,22 +4,25 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, redirect, render_template, request, send_file
+from flask import Flask, abort, jsonify, redirect, render_template, request, send_file, send_from_directory
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from services.formula_recognizer import FormulaRecognitionError, recognize_formula
+from services.formula_recognizer import FormulaRecognitionError, get_recognizer_mode, recognize_formula
 from services.word_math import WordMathError, build_word_docx, prepare_word_payload
 
 
 BASE_DIR = Path(__file__).resolve().parent
+PUBLIC_STATIC_DIR = BASE_DIR / 'public' / 'static'
+STATIC_DIR = BASE_DIR / 'static'
+WORD_EXPORT_ENABLED_ENV = 'FORMULA_WORD_EXPORT_ENABLED'
 load_dotenv(BASE_DIR / '.env')
 shared_env = BASE_DIR.parent / 'ai学习助手' / '.env'
 if shared_env.exists():
     load_dotenv(shared_env, override=False)
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=None)
 app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_UPLOAD_MB', '5')) * 1024 * 1024
 app.json.ensure_ascii = False
 
@@ -43,6 +46,25 @@ def _parse_bool_env(name: str, default: bool = False) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def _recognizer_mode() -> str:
+    return get_recognizer_mode()
+
+
+def _demo_deployment_enabled() -> bool:
+    return _recognizer_mode() == 'demo'
+
+
+def _word_export_enabled() -> bool:
+    value = os.getenv(WORD_EXPORT_ENABLED_ENV)
+    if value is not None:
+        return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+    return not _demo_deployment_enabled()
+
+
+def _word_export_error_message() -> str:
+    return '当前部署为 Vercel Demo 版，仅演示上传、识别结果展示、LaTeX 复制与预览，Word 导出暂未开启。'
 
 
 if _parse_bool_env('TRUST_PROXY', default=False):
@@ -99,6 +121,15 @@ def _recognize_upload(upload):
     return upload.filename, result
 
 
+@app.get('/static/<path:filename>', endpoint='static')
+def serve_static(filename: str):
+    for directory in (PUBLIC_STATIC_DIR, STATIC_DIR):
+        file_path = directory / filename
+        if file_path.is_file():
+            return send_from_directory(directory, filename)
+    abort(404)
+
+
 @app.get('/')
 def index():
     return render_template('index.html')
@@ -121,7 +152,23 @@ def word_addin_commands():
 
 @app.get('/api/health')
 def health():
-    return jsonify(ok=True, service='formula-ocr-mvp')
+    return jsonify(
+        ok=True,
+        service='formula-ocr-mvp',
+        mode=_recognizer_mode(),
+        demo_deployment=_demo_deployment_enabled(),
+        word_export_enabled=_word_export_enabled(),
+    )
+
+
+@app.get('/api/runtime-info')
+def runtime_info():
+    return jsonify(
+        ok=True,
+        recognizer_mode=_recognizer_mode(),
+        demo_deployment=_demo_deployment_enabled(),
+        word_export_enabled=_word_export_enabled(),
+    )
 
 
 @app.errorhandler(RequestEntityTooLarge)
@@ -156,6 +203,9 @@ def recognize():
 
 @app.post('/api/word/prepare')
 def prepare_word():
+    if not _word_export_enabled():
+        return jsonify(ok=False, error=_word_export_error_message()), 503
+
     payload = request.get_json(silent=True) or {}
     latex = str(payload.get('latex', ''))
 
@@ -180,6 +230,9 @@ def prepare_word():
 
 @app.post('/api/word/export')
 def export_word():
+    if not _word_export_enabled():
+        return jsonify(ok=False, error=_word_export_error_message()), 503
+
     payload = request.get_json(silent=True) or {}
     latex = str(payload.get('latex', ''))
     source_filename = payload.get('filename')
@@ -205,6 +258,9 @@ def export_word():
 
 @app.post('/api/word-addin/recognize')
 def word_addin_recognize():
+    if not _word_export_enabled():
+        return jsonify(ok=False, error=_word_export_error_message()), 503
+
     upload = request.files.get('file')
 
     try:

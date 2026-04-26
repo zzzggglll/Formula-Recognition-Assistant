@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "app.py": {
+      "excludeFiles": [
+        ".env",
+        ".venv/**",
+        "__pycache__/**",
+        "**/*.pyc",
+        "certs/**",
+        "deploy/**",
+        "word_addin/**",
+        "word_addin_catalog/**",
+        "server.out.log",
+        "server.err.log",
+        "PRD_公式识别助手_MVP.md",
+        "产品技术路线图_网站版+Word插件版.md"
+      ]
+    }
+  }
+}

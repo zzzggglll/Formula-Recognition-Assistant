@@ -1,0 +1,4 @@
+-r requirements.txt
+paddlepaddle
+paddleocr
+paddlex[ocr]==3.4.3

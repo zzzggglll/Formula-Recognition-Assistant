@@ -37,8 +37,17 @@ class FormulaRecognitionError(RuntimeError):
     pass
 
 
+def get_recognizer_mode() -> str:
+    configured_mode = os.getenv(MODE_ENV)
+    if configured_mode and configured_mode.strip():
+        return configured_mode.strip().lower()
+    if _is_vercel_runtime():
+        return 'demo'
+    return DEFAULT_MODE
+
+
 def recognize_formula(image_bytes: bytes, filename: str, mime_type: Optional[str]) -> dict[str, str]:
-    mode = os.getenv(MODE_ENV, DEFAULT_MODE).strip().lower()
+    mode = get_recognizer_mode()
     if mode == 'demo':
         return _recognize_in_demo_mode(filename)
     if mode not in {'paddleocr', 'demo'}:
@@ -218,6 +227,12 @@ def _get_env_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {'1', 'true', 'yes', 'on'}
 
 
+def _is_vercel_runtime() -> bool:
+    if _get_env_bool('VERCEL', default=False):
+        return True
+    return bool((os.getenv('VERCEL_ENV') or '').strip())
+
+
 def _guess_suffix(filename: str, mime_type: Optional[str]) -> str:
     if filename and '.' in filename:
         return '.' + filename.rsplit('.', 1)[1].lower()
@@ -236,7 +251,7 @@ def _recognize_in_demo_mode(filename: str) -> dict[str, str]:
         'wrapped_latex': _wrap_display_math(latex),
         'provider': 'Demo Recognizer',
         'mode': 'demo',
-        'notice': '当前为 Demo 模式，仅用于界面演示，不代表真实识别结果。',
+        'notice': '当前为 Demo 模式，仅用于界面演示，不代表真实识别结果；Vercel 部署默认不会执行本地 PaddleOCR 推理。',
     }
 
 
